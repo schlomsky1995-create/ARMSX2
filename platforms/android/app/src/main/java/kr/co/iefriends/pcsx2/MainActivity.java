@@ -9,6 +9,7 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,6 +22,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.armsx2.R;
+import com.armsx2.input.Lightgun;
 
 import org.libsdl.app.SDLControllerManager;
 
@@ -326,6 +328,45 @@ public class MainActivity extends AppCompatActivity {
         }
         return super.onKeyUp(p_keyCode, p_event);
     }*/
+
+    /** Route DolphinBar mode-4 mouse reports into the existing GunCon 2 aim path. */
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if (Lightgun.INSTANCE.getActive() && event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+            final int action = event.getActionMasked();
+            final View content = findViewById(android.R.id.content);
+            final float width = content != null ? content.getWidth() : 0f;
+            final float height = content != null ? content.getHeight() : 0f;
+
+            if (width > 0f && height > 0f) {
+                if (action == MotionEvent.ACTION_HOVER_MOVE || action == MotionEvent.ACTION_MOVE) {
+                    Lightgun.INSTANCE.aim(event.getX(), event.getY(), width, height);
+                    return true;
+                }
+
+                if (action == MotionEvent.ACTION_BUTTON_PRESS
+                        && event.getActionButton() == MotionEvent.BUTTON_PRIMARY) {
+                    Lightgun.INSTANCE.trigger(true, event.getX(), event.getY(), width, height);
+                    return true;
+                }
+                if (action == MotionEvent.ACTION_BUTTON_RELEASE
+                        && event.getActionButton() == MotionEvent.BUTTON_PRIMARY) {
+                    Lightgun.INSTANCE.trigger(false, event.getX(), event.getY(), width, height);
+                    return true;
+                }
+                // Some Android HID stacks report a mouse click as DOWN/UP instead.
+                if (action == MotionEvent.ACTION_DOWN) {
+                    Lightgun.INSTANCE.trigger(true, event.getX(), event.getY(), width, height);
+                    return true;
+                }
+                if (action == MotionEvent.ACTION_UP) {
+                    Lightgun.INSTANCE.trigger(false, event.getX(), event.getY(), width, height);
+                    return true;
+                }
+            }
+        }
+        return super.dispatchGenericMotionEvent(event);
+    }
 
     public static void sendKeyAction(View p_view, int p_action, int p_keycode) {
         if (p_action == MotionEvent.ACTION_DOWN) {
