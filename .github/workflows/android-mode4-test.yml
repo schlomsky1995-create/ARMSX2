@@ -49,3 +49,4 @@ jobs:
           name: armsx2-mode4-lightgun
           path: platforms/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
+
